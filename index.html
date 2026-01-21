@@ -12,33 +12,20 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 0;
-      padding: 0;
       direction: rtl;
-    }
-
-    h2 {
-      margin-top: 20px;
     }
 
     button {
       padding: 15px 25px;
       margin: 10px;
       font-size: 16px;
-      cursor: pointer;
-      border: none;
       border-radius: 6px;
+      border: none;
+      cursor: pointer;
     }
 
-    #openBtn {
-      background-color: #4CAF50;
-      color: white;
-    }
-
-    #closeBtn {
-      background-color: #f44336;
-      color: white;
-    }
+    #openBtn { background: #4CAF50; color: white; }
+    #closeBtn { background: #f44336; color: white; }
 
     #lockStatus {
       margin-top: 10px;
@@ -56,80 +43,77 @@
 
 <body>
 
-  <h2>🔐 שליטה במנעול החכם</h2>
+<h2>🔐 שליטה במנעול החכם</h2>
 
-  <button id="openBtn" onclick="setLock(1)">OPEN</button>
-  <button id="closeBtn" onclick="setLock(0)">CLOSE</button>
+<button id="openBtn" onclick="setLock(1)">OPEN</button>
+<button id="closeBtn" onclick="setLock(0)">CLOSE</button>
 
-  <div id="lockStatus">סטטוס מנעול: לא ידוע</div>
+<div id="lockStatus">סטטוס מנעול: לא ידוע</div>
 
-  <h2>📍 מיקום המנעול (GPS)</h2>
-  <div id="map"></div>
+<h2>📍 מיקום המנעול (GPS)</h2>
+<div id="map"></div>
 
-  <script>
-    /* ================= Firebase ================= */
-    const firebaseConfig = {
-      apiKey: "AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18",
-      databaseURL: "https://smart-lock-site-default-rtdb.firebaseio.com"
-    };
+<script>
+/* ===== Firebase ===== */
+firebase.initializeApp({
+  apiKey: "AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18",
+  databaseURL: "https://smart-lock-site-default-rtdb.firebaseio.com"
+});
+const db = firebase.database();
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+/* ===== Lock ===== */
+function setLock(v) {
+  db.ref("lock").set(v);
+}
 
-    /* ================= Lock Control ================= */
-    function setLock(value) {
-      db.ref("lock").set(value);
-    }
+db.ref("lock").on("value", snap => {
+  const v = snap.val();
+  const s = document.getElementById("lockStatus");
+  if (v === 1) {
+    s.innerText = "סטטוס מנעול: פתוח";
+    s.style.color = "green";
+  } else if (v === 0) {
+    s.innerText = "סטטוס מנעול: סגור";
+    s.style.color = "red";
+  }
+});
 
-    db.ref("lock").on("value", (snapshot) => {
-      const v = snapshot.val();
-      const status = document.getElementById("lockStatus");
+/* ===== Maps + GPS ===== */
+let map, marker;
+let lastGPS = null;
+let mapsReady = false;
 
-      if (v === 1) {
-        status.innerText = "סטטוס מנעול: פתוח";
-        status.style.color = "green";
-      } else if (v === 0) {
-        status.innerText = "סטטוס מנעול: סגור";
-        status.style.color = "red";
-      }
+window.onMapsReady = function () {
+  mapsReady = true;
+  if (lastGPS) drawMap(lastGPS.lat, lastGPS.lng);
+};
+
+function drawMap(lat, lng) {
+  const pos = { lat, lng };
+  if (!map) {
+    map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 16,
+      center: pos
     });
+    marker = new google.maps.Marker({ position: pos, map });
+  } else {
+    marker.setPosition(pos);
+    map.setCenter(pos);
+  }
+}
 
-    /* ================= Google Maps + GPS ================= */
-    let map = null;
-    let marker = null;
+db.ref("gps").on("value", snap => {
+  const d = snap.val();
+  if (!d || d.lat == null || d.lng == null) return;
+  lastGPS = d;
+  if (mapsReady) drawMap(d.lat, d.lng);
+});
+</script>
 
-    function initMap(lat, lng) {
-      const pos = { lat: lat, lng: lng };
-
-      map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 16,
-        center: pos
-      });
-
-      marker = new google.maps.Marker({
-        position: pos,
-        map: map
-      });
-    }
-
-    db.ref("gps").on("value", (snapshot) => {
-      const data = snapshot.val();
-      if (!data || data.lat === undefined || data.lng === undefined) return;
-
-      if (!map) {
-        initMap(data.lat, data.lng);
-      } else {
-        const pos = { lat: data.lat, lng: data.lng };
-        marker.setPosition(pos);
-        map.setCenter(pos);
-      }
-    });
-  </script>
-
-  <!-- Google Maps API -->
-  <script async
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18">
-  </script>
+<!-- Google Maps -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18&callback=onMapsReady">
+</script>
 
 </body>
 </html>
