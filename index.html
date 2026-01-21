@@ -1,118 +1,28 @@
+
 <!DOCTYPE html>
-<html lang="he">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Lock Control</title>
-
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
+  <meta charset="utf-8">
+  <title>Test Map</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      direction: rtl;
-    }
-
-    button {
-      padding: 15px 25px;
-      margin: 10px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-    }
-
-    #openBtn { background: #4CAF50; color: white; }
-    #closeBtn { background: #f44336; color: white; }
-
-    #lockStatus {
-      margin-top: 10px;
-      font-weight: bold;
-      font-size: 18px;
-    }
-
-    #map {
-      width: 100%;
-      height: 420px;
-      margin-top: 20px;
-    }
+    #map { width: 100%; height: 400px; }
   </style>
 </head>
-
 <body>
 
-<h2>🔐 שליטה במנעול החכם</h2>
-
-<button id="openBtn" onclick="setLock(1)">OPEN</button>
-<button id="closeBtn" onclick="setLock(0)">CLOSE</button>
-
-<div id="lockStatus">סטטוס מנעול: לא ידוע</div>
-
-<h2>📍 מיקום המנעול (GPS)</h2>
 <div id="map"></div>
 
 <script>
-/* ===== Firebase ===== */
-firebase.initializeApp({
-  apiKey: "AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18",
-  databaseURL: "https://smart-lock-site-default-rtdb.firebaseio.com"
-});
-const db = firebase.database();
-
-/* ===== Lock ===== */
-function setLock(v) {
-  db.ref("lock").set(v);
+function initMap() {
+  new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 32.0853, lng: 34.7818 },
+    zoom: 14
+  });
 }
-
-db.ref("lock").on("value", snap => {
-  const v = snap.val();
-  const s = document.getElementById("lockStatus");
-  if (v === 1) {
-    s.innerText = "סטטוס מנעול: פתוח";
-    s.style.color = "green";
-  } else if (v === 0) {
-    s.innerText = "סטטוס מנעול: סגור";
-    s.style.color = "red";
-  }
-});
-
-/* ===== Maps + GPS ===== */
-let map, marker;
-let lastGPS = null;
-let mapsReady = false;
-
-window.onMapsReady = function () {
-  mapsReady = true;
-  if (lastGPS) drawMap(lastGPS.lat, lastGPS.lng);
-};
-
-function drawMap(lat, lng) {
-  const pos = { lat, lng };
-  if (!map) {
-    map = new google.maps.Map(document.getElementById("map"), {
-      zoom: 16,
-      center: pos
-    });
-    marker = new google.maps.Marker({ position: pos, map });
-  } else {
-    marker.setPosition(pos);
-    map.setCenter(pos);
-  }
-}
-
-db.ref("gps").on("value", snap => {
-  const d = snap.val();
-  if (!d || d.lat == null || d.lng == null) return;
-  lastGPS = d;
-  if (mapsReady) drawMap(d.lat, d.lng);
-});
 </script>
 
-<!-- Google Maps -->
 <script async
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18&callback=onMapsReady">
+src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCj9-3-IPmv2SwdBr3oO0v4bSJPPK3JU18&callback=initMap">
 </script>
 
 </body>
